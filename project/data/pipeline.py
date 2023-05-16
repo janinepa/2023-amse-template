@@ -53,13 +53,8 @@ if(res.status!=200):
     
 data = res.read()
 train_stations = pd.read_xml(data)
-
-train_stations.to_csv("train_stations.csv")
-
-if not engine.has_table('train_stations'):
-    train_stations.to_sql('train_stations', con=engine)
-else:
-    print("Table train_stations already exists")
+     
+train_stations.to_sql('train_stations','sqlite:///amse.sqlite',if_exists='replace',index=False)     
         
 # get timetable data from stations (currently only one station)
 conn.request("GET", "/db-api-marketplace/apis/timetables/v1/fchg/8000036", headers=headers)
@@ -71,13 +66,8 @@ if(res.status!=200):
  
 data = res.read()
 timetables = pd.read_xml(data.decode())
-
-timetables.to_csv("timetables.csv")
-
-if not engine.has_table('timetables'):
-    timetables.to_sql('timetables', con=engine)
-else:
-    print("Table timetables already exists")
+    
+timetables.to_sql('timetables','sqlite:///amse.sqlite',if_exists='replace',index=False)     
 
 
 #################################
@@ -104,16 +94,12 @@ data = pd.read_json(name+".json")
 data.to_csv(name+".csv")
 weather_stations = pd.read_csv(name+".csv")
 
-if not engine.has_table('weather_stations'):
-    weather_stations.to_sql('weather_stations', con=engine)
-else:
-    print("Table weather_stations already exists")
-
+weather_stations.to_sql('weather_stations','sqlite:///amse.sqlite',if_exists='replace',index=False)     
 
 
 # get weather data for stations (currently only one station)
 url = "https://bulk.meteostat.net/v2/hourly/10326.csv.gz"
-name = "10637"
+name = "10326"
 
 res = requests.get(url)
 
@@ -130,7 +116,4 @@ with gzip.open(name+".csv.gz", 'rb') as f_in:
 colnames=['date', 'hour', 'temp', 'dwpt','rhum','prcp','snow','wdir','wspd','wpgt','pres','tsun','coco'] 
 weather = pd.read_csv(name+".csv", names=colnames, header=None)
 
-if not engine.has_table('weather'):
-    weather.to_sql('weather', con=engine)
-else:
-    print("Table weather already exists")
+weather.to_sql('weather','sqlite:///amse.sqlite',if_exists='replace',index=False)     
