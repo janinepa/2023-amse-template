@@ -11,19 +11,27 @@ The analysis helps people who depend on punctual trains to understand whether th
 
 ## Datasources
 
-### Datasource 1: Aktuelle stündliche Lufttemperatur und Luftfeuchte, gemessen an Stadtklimastationen, für ausgewählte urbane Räume in Deutschland by Bundesministerium für Digitales und Verkehr (BMDV) 
-* Metadata URL: https://mobilithek.info/offers/-3781580859517637464
-* Data URL:  https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate_urban/hourly/air_temperature/recent/ 
-* Data Type: ZIP (txt and xlsx)
-
-The Data describes climate data containing station, air temperature and humidity.
-
-### Datasource 2: Timetables 1.0.213 by DB Station&Service AG
-* Metadata URL: https://developers.deutschebahn.com/db-api-marketplace/apis/product/timetables/api/26494#/Timetables_10213/overview
-* Metadata URL: https://apis.deutschebahn.com/db-api-marketplace/apis/timetables/v1
-* Data Type: REST API
+### Datasource 1: Fahrplan API (Timetables 1.0.213) by DB Station&Service AG
+* Metadata URL: https://mobilithek.info/offers/-3916716856299319220
+* Data URL: https://apis.deutschebahn.com/db-api-marketplace/apis/timetables/v1
+* Data Overview: https://developers.deutschebahn.com/db-api-marketplace/apis/product/timetables/api/26494#/Timetables_10213/overview
+* Data Type: xml by REST API
 
 This is a REST API for passenger information for train stations operated by DB Station&Service AG. There are attributes like the station, the timetable or the delay available.
+
+To access the data, it is necessary to create a BahnID account. After subscribing to the API, you will receive the API key. You are allowed to use the data under the license Creative Commons Attribution 4.0 International (CC BY 4.0) https://creativecommons.org/licenses/by/4.0/. 
+
+The station IDs required for querying the timetables can be accessed by https://apis.deutschebahn.com/db-api-marketplace/apis/timetables/v1/station/*
+
+
+### Datasource 2: Historical weather and climate data by Meteostat Developers
+* Metadata URL: https://dev.meteostat.net/
+* Data URL:  https://bulk.meteostat.net/v2 
+* Data Type: zipped csv with bulk data interface which provides full data dumps 
+
+The endpoint provides a zipped CSV file for weather stations hourly, daily or monthly. The data contains data such as air temperature, precipitation or sunshine minutes.
+
+The weather station IDs that have sent data in the past can be looked up at the endpoint https://bulk.meteostat.net/v2/stations/lite.json.gz
 
 ## Work Packages
 1. Automated data pipeline [#1][i1]
