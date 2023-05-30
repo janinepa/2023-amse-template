@@ -9,12 +9,35 @@ import requests
 import gzip
 import shutil
 
+import sqlite3
 from sqlalchemy import create_engine
+
+from datetime import datetime
 
 # Data engineering script to pull, massage, and store data
 # Output: local datasets in /data directory (as raw csv or raw json and processed SQLite databases)
 
 engine = create_engine('sqlite:///amse.db', echo=False)
+
+
+def parse_date(date_str, raw=False):
+    if date_str == 'nan':
+        return float('nan')
+    date = date_str[:6]
+    time = date_str[6:10]
+
+    year = int(date[:2]) + 2000
+    month = int(date[2:4])
+    day = int(date[4:6])
+    hour = int(time[:2])
+    minute = int(time[2:4])
+
+    d = datetime(year, month, day, hour, minute, second=0)
+
+    if raw:
+        return d.timestamp()
+    else:
+        return d.strftime("%d.%m.%Y, %H:%M")
 
 
 def get_data_from_db(table):
@@ -30,99 +53,203 @@ def get_data_from_db(table):
 ###################################
 
 
-# get API key
-dotenv.load_dotenv()
+def get_trainstations(headers):
+    # connect to API
+    conn = http.client.HTTPSConnection("apis.deutschebahn.com")
 
-APIKey = os.getenv('APIKey')
-ClientID = os.getenv('ClientID')
+    # get all Stations
+    conn.request(
+        "GET", "/db-api-marketplace/apis/timetables/v1/station/*", headers=headers)
 
-# connect to API
-conn = http.client.HTTPSConnection("apis.deutschebahn.com")
+    res = conn.getresponse()
 
-headers = {
-    'DB-Client-Id': ClientID,
-    'DB-Api-Key': APIKey,
-    'accept': "application/xml"
-}
+    if (res.status != 200):
+        print("HTTP Error", res.status, res.reason)
+    else:
+        data = res.read()
+        train_stations = pd.read_xml(data)
 
-# get all Stations
-conn.request(
-    "GET", "/db-api-marketplace/apis/timetables/v1/station/*", headers=headers)
+        # Filter for main stations
+        substrings = ["Hbf"]
+        mask = train_stations["name"].str.contains("|".join(substrings))
+        train_stations = train_stations[mask]
 
-res = conn.getresponse()
+        return train_stations
 
-if (res.status != 200):
-    print("HTTP Error", res.status, res.reason)
 
-data = res.read()
-train_stations = pd.read_xml(data)
+def get_timetables(headers, train_stations):
+    train_stations_list = list(train_stations.eva)
 
-train_stations.to_sql('train_stations', 'sqlite:///amse.sqlite',
-                      if_exists='replace', index=False)
+    conn = http.client.HTTPSConnection("apis.deutschebahn.com")
+    timetable_table = pd.DataFrame()
 
-# get timetable data from stations (currently only one station)
-conn.request(
-    "GET", "/db-api-marketplace/apis/timetables/v1/fchg/8000036", headers=headers)
+    # get timetable data from stations
+    for i in train_stations_list:
+        conn.request(
+            "GET", "/db-api-marketplace/apis/timetables/v1/fchg/{}".format(i), headers=headers)
 
-res = conn.getresponse()
+        res = conn.getresponse()
 
-if (res.status != 200):
-    print("HTTP Error", res.status, res.reason)
+        if (res.status != 200):
+            print("HTTP Error", res.status, res.reason)
+        else:
+            data = res.read()
+            # filter for departure data
+            if 'dp' not in data.decode("utf-8"):
+                print('dp not in data')
+            else:
+                timetables = pd.read_xml(
+                    data.decode("utf-8"), xpath=".//s//dp")
 
-data = res.read()
-timetables = pd.read_xml(data.decode())
+                # filter for changed time and planned time
+                if 'ct' in timetables.columns:
+                    timetables[['ct']] = timetables[['ct']].astype(str)
+                    timetables['ct'] = timetables['ct'].apply(parse_date)
+                else:
+                    timetables['ct'] = float('nan')
 
-timetables.to_sql('timetables', 'sqlite:///amse.sqlite',
-                  if_exists='replace', index=False)
+                if 'pt' in timetables.columns:
+                    timetables[['pt']] = timetables[['pt']].astype(str)
+                    timetables['pt'] = timetables['pt'].apply(parse_date)
+                else:
+                    timetables['pt'] = float('nan')
 
+                # timetables.to_csv('timetables.csv')
+                timetables['eva'] = i
+
+                timetable = pd.DataFrame(timetables[['eva', 'ct', 'pt']])
+
+                # TODO drop nan or just where planned is nan
+                timetable = timetable.dropna()
+
+                timetable_table = timetable_table.append(timetable)
+
+    # TODO update taballe mit neunen daten wenn eva und pt gleich dann nicht append sonst schon
+
+    return timetable_table
 
 #################################
 ##### Datasource 2: Weather #####
 #################################
 
-# get all stations
-url = "https://bulk.meteostat.net/v2/stations/lite.json.gz"
-name = "weather_stations"
 
-res = requests.get(url)
+def get_weather_station():
+    # get all stations
+    url = "https://bulk.meteostat.net/v2/stations/lite.json.gz"
+    name = "weather_stations"
 
-if (res.status_code != 200):
-    print("HTTP Error", res.status_code, res.reason)
+    res = requests.get(url)
 
-with open(name+".json.gz", "wb") as file:
-    file.write(res.content)
+    if (res.status_code != 200):
+        print("HTTP Error", res.status_code, res.reason)
+    else:
+        with open("./temp/"+name+".json.gz", "wb") as file:
+            file.write(res.content)
 
-with gzip.open(name+".json.gz", 'rb') as f_in:
-    with open(name+".json", 'wb') as f_out:
-        shutil.copyfileobj(f_in, f_out)
+        with gzip.open("./temp/"+name+".json.gz", 'rb') as f_in:
+            with open("./temp/"+name+".json", 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
 
-data = pd.read_json(name+".json")
-data.to_csv(name+".csv")
-weather_stations = pd.read_csv(name+".csv")
+        data = pd.read_json("./temp/"+name+".json")
+        data.to_csv("./temp/"+name+".csv")
+        weather_stations = pd.read_csv("./temp/"+name+".csv")
+        weather_stations = weather_stations[weather_stations['country'] == 'DE']
 
-weather_stations.to_sql(
-    'weather_stations', 'sqlite:///amse.sqlite', if_exists='replace', index=False)
+    return weather_stations
 
 
-# get weather data for stations (currently only one station)
-url = "https://bulk.meteostat.net/v2/hourly/10326.csv.gz"
-name = "10326"
+def get_match_table(weather_stations, train_stations):
 
-res = requests.get(url)
+    w = weather_stations[['id', 'name']]
+    t = train_stations[['eva', 'name']]
 
-if (res.status_code != 200):
-    print("HTTP Error", res.status_code, res.reason)
+    train_stations_list = list(train_stations['name'])
+    train_stations_list
+    weather = []
+    for i in train_stations_list:
+        x = i.split('Hbf', 1)
+        weather.append(x[0].strip())
 
-with open(name+".csv.gz", "wb") as file:
-    file.write(res.content)
+    t['common'] = weather
+    t['join'] = 1
+    w['join'] = 1
 
-with gzip.open(name+".csv.gz", 'rb') as f_in:
-    with open(name+".csv", 'wb') as f_out:
-        shutil.copyfileobj(f_in, f_out)
+    dataFrameFull = t.merge(
+        w, on='join').drop('join', axis=1)
 
-colnames = ['date', 'hour', 'temp', 'dwpt', 'rhum', 'prcp',
-            'snow', 'wdir', 'wspd', 'wpgt', 'pres', 'tsun', 'coco']
-weather = pd.read_csv(name+".csv", names=colnames, header=None)
+    t.drop('join', axis=1, inplace=True)
+    # print(dataFrameFull)
+    dataFrameFull['match'] = dataFrameFull.apply(
+        lambda x: x.name_y.find(x.common), axis=1).ge(0)
 
-weather.to_sql('weather', 'sqlite:///amse.sqlite',
-               if_exists='replace', index=False)
+    match_table = dataFrameFull[dataFrameFull['match']]
+
+    match_table.drop_duplicates(subset=['name_x'])
+
+    return match_table
+
+
+def get_weather_data(match_table):
+    # get weather data for stations (currently only one station)
+    weather_dataframe = pd.DataFrame()
+    for i in list(match_table.id):
+        print(i)
+
+        url = "https://bulk.meteostat.net/v2/hourly/{}.csv.gz".format(i)
+        name = i
+
+        res = requests.get(url)
+
+        if (res.status_code != 200):
+            print("HTTP Error", res.status_code, res.reason)
+        else:
+            with open("./temp/"+name+".csv.gz", "wb") as file:
+                file.write(res.content)
+
+            with gzip.open("./temp/"+name+".csv.gz", 'rb') as f_in:
+                with open("./temp/"+name+".csv", 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+
+            colnames = ['date', 'hour', 'temp', 'dwpt', 'rhum', 'prcp',
+                        'snow', 'wdir', 'wspd', 'wpgt', 'pres', 'tsun', 'coco']
+            weather = pd.read_csv("./temp/"+name+".csv",
+                                  names=colnames, header=None)
+            weather['station'] = i
+            weather = weather[weather.date > '2023-01-01']
+            weather_dataframe = weather_dataframe.append(weather)
+            # weather.to_sql('weather', 'sqlite:///amse.sqlite',
+            #   if_exists='append', index=False)
+    return weather_dataframe
+
+
+def load(data, table, db):
+    conn = sqlite3.connect(db)
+    data.to_sql(table, conn, if_exists='replace', index=False)
+    conn.close()
+
+
+if __name__ == "__main__":
+    # get DB API key
+    dotenv.load_dotenv()
+    APIKey = os.getenv('APIKey')
+    ClientID = os.getenv('ClientID')
+    headers = {
+        'DB-Client-Id': ClientID,
+        'DB-Api-Key': APIKey,
+        'accept': "application/xml"
+    }
+
+    train_stations = get_trainstations(headers)
+    load(train_stations, 'train_stations', 'amse.sqlite')
+
+    time_tables = get_timetables(headers, train_stations)
+    load(time_tables, 'timetables3005', 'amse.sqlite')
+
+    weather_stations = get_weather_station()
+    load(weather_stations, 'weather_stations', 'amse.sqlite')
+
+    match_table = get_match_table(weather_stations, train_stations)
+    load(match_table, 'match_table', 'amse.sqlite')
+
+    weather_data = get_weather_data(match_table)
+    load(weather_data, 'weather', 'amse.sqlite')
