@@ -27,6 +27,8 @@ df = df.dropna()
 
 # Write data into a SQLite database called “trainstops.sqlite”, in the table “trainstops”
 # Use fitting SQLite types (e.g., BIGINT, TEXT or FLOAT) for all columns
+df["Betreiber_Nr"] = df["Betreiber_Nr"].astype(int)
+
 engine = create_engine("sqlite:///trainstops.sqlite", echo=True)
 
 df.to_sql('trainstops', engine, if_exists='replace', index=False)
