@@ -120,7 +120,7 @@ def get_timetables(headers, train_stations):
                 timetable = pd.DataFrame(timetables[['eva', 'ct', 'pt']])
 
                 # TODO drop nan or just where planned is nan
-                timetable = timetable.dropna()
+                #timetable = timetable.dropna()
 
                 timetable_table = timetable_table.append(timetable)
 
@@ -243,13 +243,13 @@ if __name__ == "__main__":
     load(train_stations, 'train_stations', 'amse.sqlite')
 
     time_tables = get_timetables(headers, train_stations)
-    load(time_tables, 'timetables3005', 'amse.sqlite')
+    load(time_tables, 'timetables0506', 'amse.sqlite')
 
-    weather_stations = get_weather_station()
-    load(weather_stations, 'weather_stations', 'amse.sqlite')
+    #weather_stations = get_weather_station()
+    #load(weather_stations, 'weather_stations', 'amse.sqlite')
 
-    match_table = get_match_table(weather_stations, train_stations)
-    load(match_table, 'match_table', 'amse.sqlite')
+    #match_table = get_match_table(weather_stations, train_stations)
+    #load(match_table, 'match_table', 'amse.sqlite')
 
-    weather_data = get_weather_data(match_table)
-    load(weather_data, 'weather', 'amse.sqlite')
+    #weather_data = get_weather_data(match_table)
+    #load(weather_data, 'weather', 'amse.sqlite')
