@@ -26,6 +26,7 @@ jobs:
         pip install pysqlite3
         pip install python-dotenv
         pip install requests
+        pip install sqlalchemy
         
 
     # Run Code Format check
