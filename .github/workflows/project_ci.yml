@@ -12,7 +12,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
       with:
-        path: 2023-amse-template
+        path: main
     # Install python
     - name: Set up Python 3.11
       uses: actions/setup-python@v4
@@ -26,4 +26,4 @@ jobs:
     # Run tests 
     - name: Tests with pytest
       run: |
-        /project/testing.sh
+        .main/project/testing.sh
