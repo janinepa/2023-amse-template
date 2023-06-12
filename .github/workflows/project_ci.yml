@@ -6,8 +6,8 @@ on:
     - main
 
 env: 
-  APIKey: ${{ secrets.APIKey }}
-  ClientID: ${{ secrets.ClientID }}
+  APIKey: '${{ secrets.APIKey }}'
+  ClientID: '${{ secrets.ClientID }}'
 
 jobs:
   project-ci:
