@@ -24,7 +24,7 @@ jobs:
         pip install pytest
         pip install pandas
         pip install pysqlite3
-        pip install dotenv
+        pip install python-dotenv
         
 
     # Run Code Format check
