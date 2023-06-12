@@ -23,7 +23,7 @@ jobs:
       run: |
         pip install pytest
         pip install pandas
-        pip install sqlite3
+        pip install pysqlite3
         
 
     # Run Code Format check
