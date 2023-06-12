@@ -22,4 +22,4 @@ jobs:
     # Run tests 
     - name: Tests with pytest
       run: |
-        ./project/testing.sh
+        /project/testing.sh
