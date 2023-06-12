@@ -5,6 +5,10 @@ on:
     branches:
     - main
 
+env: 
+  APIKey: ${{ env.APIKey }}
+  ClientID: ${{ env.ClientID }}
+
 jobs:
   project-ci:
     runs-on: ubuntu-latest
