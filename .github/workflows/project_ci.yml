@@ -22,6 +22,7 @@ jobs:
     - name: Install dependecies
       run: |
         pip install pytest
+        pip install pandas
 
     # Run Code Format check
 
