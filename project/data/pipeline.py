@@ -122,7 +122,7 @@ def get_timetables(headers, train_stations):
                 # TODO drop nan or just where planned is nan
                 #timetable = timetable.dropna()
 
-                timetable_table = pd.concat(timetable_table,timetable)
+                timetable_table = pd.concat([timetable_table,timetable])
 
     # TODO update taballe mit neunen daten wenn eva und pt gleich dann nicht append sonst schon
 
