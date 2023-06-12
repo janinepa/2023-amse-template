@@ -7,6 +7,7 @@ import sqlite3
 from pandas.testing import assert_frame_equal
 
 def test_sql():
+    print(os.path)
     assert os.path.exists("project/data/amse.sqlite") == True
        
 #def test_transform():
