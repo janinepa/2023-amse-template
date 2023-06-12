@@ -26,4 +26,4 @@ jobs:
     # Run tests 
     - name: Tests with pytest
       run: |
-        .main/project/testing.sh
+        bash project/testing.sh
