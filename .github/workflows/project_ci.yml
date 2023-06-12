@@ -31,6 +31,7 @@ jobs:
         pip install python-dotenv
         pip install requests
         pip install sqlalchemy
+        pip install lxml
         
 
     # Run Code Format check
