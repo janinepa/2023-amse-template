@@ -19,6 +19,9 @@ jobs:
         python-version: 3.11
 
     # Install dependencies
+    - name: Install dependecies
+      run: |
+      pip install pytest
 
     # Run Code Format check
 
