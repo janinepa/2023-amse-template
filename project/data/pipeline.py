@@ -248,11 +248,11 @@ if __name__ == "__main__":
     time_tables.to_csv(name+'.csv')
     load(time_tables, name, 'amse.sqlite')
 
-    #weather_stations = get_weather_station()
-    #load(weather_stations, 'weather_stations', 'amse.sqlite')
+    weather_stations = get_weather_station()
+    load(weather_stations, 'weather_stations', 'amse.sqlite')
 
-    #match_table = get_match_table(weather_stations, train_stations)
-    #load(match_table, 'match_table', 'amse.sqlite')
+    match_table = get_match_table(weather_stations, train_stations)
+    load(match_table, 'match_table', 'amse.sqlite')
 
-    #weather_data = get_weather_data(match_table)
-    #load(weather_data, 'weather', 'amse.sqlite')
+    weather_data = get_weather_data(match_table)
+    load(weather_data, 'weather', 'amse.sqlite')

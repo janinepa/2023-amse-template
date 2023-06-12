@@ -1,4 +1,4 @@
 #! /bin/bash    
 
-#python testing.py
+python project/data/pipeline.py
 pytest project/testing.py
