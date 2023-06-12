@@ -241,9 +241,12 @@ if __name__ == "__main__":
 
     train_stations = get_trainstations(headers)
     load(train_stations, 'train_stations', 'amse.sqlite')
-
+    
+    now = datetime.now()    
+    name='timetables'+now.strftime("%m-%d-%H")
     time_tables = get_timetables(headers, train_stations)
-    load(time_tables, 'timetables0506', 'amse.sqlite')
+    time_tables.to_csv(name+'.csv')
+    load(time_tables, name, 'amse.sqlite')
 
     #weather_stations = get_weather_station()
     #load(weather_stations, 'weather_stations', 'amse.sqlite')
