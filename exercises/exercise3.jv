@@ -1,0 +1,98 @@
+// Build an automated data pipeline for the following source:
+// Data offer: https://mobilithek.info/offers/-655945265921899037
+// Direct download link: https://www-genesis.destatis.de/genesis/downloads/00/tables/46251-0021_00.csv
+
+// Pick suitable encoding:
+// Make sure to preserve the german special letters like “ü” or “ä”
+// Reshape data structure
+// Ignore the first 6 lines and last 4 lines as metadata
+// Keep only the following columns, rename them to the new name given here (M-BU contain summary data)
+// // Column A: date
+// Column B: CIN
+// Column C: name
+// Column M: petrol
+// Column W: diesel
+// Column AG: gas
+// Column AQ: electro
+// Column BA: hybrid
+// Column BK: plugInHybrid
+// Column BU: others
+// Drop all other columns
+// Validate data
+// date/name are strings, no need to validate date
+// CINs are Community Identification Numbers, must be strings with 5 characters and can have a leading 0
+// all other columns should be positive integers > 0
+// drop all rows that contain invalid values
+// Use fitting SQLite types (e.g., BIGINT, TEXT or FLOAT) for all columns
+valuetype PositivNumbers oftype integer {
+	constraints: [
+		OnlyPositivNumbers,
+	];
+}
+
+constraint OnlyPositivNumbers oftype RangeConstraint{
+	lowerBound: 0;
+}
+
+valuetype CINs oftype text {
+	constraints: [
+		CINLength,
+	];
+}
+
+constraint CINLength oftype LengthConstraint{
+	minLength: 5;
+    maxLength: 5;
+}
+
+
+pipeline CarsPipeline {
+    block CarsExtractor oftype HttpExtractor {
+        url: "https://www-genesis.destatis.de/genesis/downloads/00/tables/46251-0021_00.csv";
+    }
+
+    block TextFileInterpreter oftype TextFileInterpreter{
+        encoding: "ASCII";
+    }
+
+    block CarsCSVInterpreter oftype CSVInterpreter {
+        delimiter: ';';
+	}
+
+    block CarsRowDeleter oftype RowDeleter {
+        delete: [row 1, row 2, row 3, row 4, row 5, row 6, row 484, row 485, row 486, row 487];
+    }
+
+
+    block CarsColumnDeleter oftype ColumnDeleter {
+		delete: [column D, column E, column F, column G, column H, column I, column J, column K, column L, column N, column O, column P, column Q, column R, column S, column T, column U, column V, column X, column Y, column Z, column AA, column AB, column AC, column AD, column AE, column AF, column AH, column AI, column AJ, column AK, column AL, column AM, column AN, column AO, column AP, column AR, column AS, column AT, column AU, column AV, column AW, column AX, column AY, column AZ, column BB, column BC, column BD, column BE, column BF, column BG, column BH, column BI, column BJ, column BL, column BM, column BN, column BO, column BP, column BQ, column BR, column BS, column BT, column BV, column BW, column BX, column BY, column BZ, column CA, column CB, column CC, column CD, column CE];     }
+
+    block CarsTableInterpreter oftype TableInterpreter {
+		header: false;
+	    columns: [
+		    "date" oftype text,
+            "CIN" oftype CINs,
+            "name" oftype text,
+            "petrol" oftype PositivNumbers,
+            "diesel" oftype PositivNumbers,
+            "gas" oftype PositivNumbers,
+            "electro" oftype PositivNumbers,
+            "hybrid" oftype PositivNumbers,
+            "plugInHybrid" oftype PositivNumbers,
+            "others" oftype PositivNumbers,
+		];
+	}
+
+    block CarsLoader oftype SQLiteLoader {
+		table: "cars";
+		file: "./cars.sqlite";
+	}
+
+    CarsExtractor
+        ->TextFileInterpreter
+        ->CarsCSVInterpreter
+        ->CarsRowDeleter
+        ->CarsColumnDeleter
+        ->CarsTableInterpreter
+        ->CarsLoader;
+}

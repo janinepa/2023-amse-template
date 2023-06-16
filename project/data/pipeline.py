@@ -118,6 +118,8 @@ def get_timetables(headers, train_stations):
                 timetables['eva'] = i
 
                 timetable = pd.DataFrame(timetables[['eva', 'ct', 'pt']])
+                timetable = timetable.dropna(subset=['pt'])
+
 
                 # TODO drop nan or just where planned is nan
                 #timetable = timetable.dropna()
@@ -216,7 +218,7 @@ def get_weather_data(match_table):
                                   names=colnames, header=None)
             weather['station'] = i
             weather = weather[weather.date > '2023-01-01']
-            weather_dataframe = weather_dataframe.append(weather)
+            weather_dataframe =pd.concat([weather_dataframe,weather])
             # weather.to_sql('weather', 'sqlite:///amse.sqlite',
             #   if_exists='append', index=False)
     return weather_dataframe
@@ -248,11 +250,11 @@ if __name__ == "__main__":
     time_tables.to_csv(name+'.csv')
     load(time_tables, name, 'amse.sqlite')
 
-    weather_stations = get_weather_station()
-    load(weather_stations, 'weather_stations', 'amse.sqlite')
+    #weather_stations = get_weather_station()
+    #load(weather_stations, 'weather_stations', 'amse.sqlite')
 
-    match_table = get_match_table(weather_stations, train_stations)
-    load(match_table, 'match_table', 'amse.sqlite')
+    #match_table = get_match_table(weather_stations, train_stations)
+    #load(match_table, 'match_table', 'amse.sqlite')
 
-    weather_data = get_weather_data(match_table)
-    load(weather_data, 'weather', 'amse.sqlite')
+    #weather_data = get_weather_data(match_table)
+    #load(weather_data, 'weather', 'amse.sqlite')
