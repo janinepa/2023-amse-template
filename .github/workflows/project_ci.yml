@@ -32,6 +32,7 @@ jobs:
         pip install requests
         pip install sqlalchemy
         pip install lxml
+        pip install scikit-learn
         
 
     # Run Code Format check
