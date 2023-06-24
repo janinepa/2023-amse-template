@@ -14,6 +14,13 @@ from sqlalchemy import create_engine
 
 from datetime import datetime
 
+import json
+from sklearn.neighbors import BallTree
+from sklearn.metrics import DistanceMetric
+import ast
+
+import numpy as np
+
 # Data engineering script to pull, massage, and store data
 # Output: local datasets in /data directory (as raw csv or raw json and processed SQLite databases)
 
@@ -120,11 +127,10 @@ def get_timetables(headers, train_stations):
                 timetable = pd.DataFrame(timetables[['eva', 'ct', 'pt']])
                 timetable = timetable.dropna(subset=['pt'])
 
-
                 # TODO drop nan or just where planned is nan
-                #timetable = timetable.dropna()
+                # timetable = timetable.dropna()
 
-                timetable_table = pd.concat([timetable_table,timetable])
+                timetable_table = pd.concat([timetable_table, timetable])
 
     # TODO update taballe mit neunen daten wenn eva und pt gleich dann nicht append sonst schon
 
@@ -190,6 +196,69 @@ def get_match_table(weather_stations, train_stations):
 
     return match_table
 
+def get_match_table_update(weather_stations, geo_data):
+    weather_stations['location'] = weather_stations['location'].apply(ast.literal_eval)
+    weather_stations['longitude'] = weather_stations['location'].apply(lambda x: x['longitude'])
+    weather_stations['latitude'] = weather_stations['location'].apply(lambda x: x['latitude'])
+    # from sklearn.neighbors import BallTree, DistanceMetric
+    w=weather_stations[['id','longitude',	'latitude','name']]
+
+    #  DF1
+    coords = np.radians(w[['latitude', 'longitude']])
+    dist = DistanceMetric.get_metric('haversine')
+    tree = BallTree(coords, metric=dist)
+
+    # DF2
+    coords = np.radians(geo_data[['latitude', 'longitude']])
+    distances, indices = tree.query(coords, k=1)
+    geo_data['name_train'] = w['name'].iloc[indices.flatten()].values
+    geo_data['longitude_matched'] = w['longitude'].iloc[indices.flatten()].values
+    geo_data['latitude_matched'] = w['latitude'].iloc[indices.flatten()].values
+    geo_data['id'] = w['id'].iloc[indices.flatten()].values
+
+    geo_data['Distance'] = distances.flatten()
+    return geo_data
+
+
+def get_train_station_geo_data(headers, train_stations):
+    
+    geo_data_dataframe = pd.DataFrame()
+    
+
+    for i in list(train_stations.eva):
+        print(i)
+        conn = http.client.HTTPSConnection("apis.deutschebahn.com")
+        
+        url = "/db-api-marketplace/apis/station-data/v2/stations?eva={}".format(i)
+
+        # get all Stations
+        conn.request(
+            "GET", url, headers=headers)
+
+        res = conn.getresponse()
+
+        geo_data = pd.DataFrame()
+
+        if (res.status != 200):
+            print("HTTP Error", res.status, res.reason)
+        else:
+            data = res.read()
+            parsed_data = json.loads(data)
+            df = pd.DataFrame(parsed_data['result'])
+            df['geographicCoordinates'] = df['evaNumbers'].apply(
+                lambda x: x[0]['geographicCoordinates'])
+            geo_data['name'] = df['name']
+            geo_data['evaNumbers'] = df['evaNumbers'].apply(
+                lambda x: x[0]['number'])
+
+            geo_data['latitude'] = df['geographicCoordinates'].apply(
+                lambda x: x['coordinates'][1])
+            geo_data['longitude'] = df['geographicCoordinates'].apply(
+                lambda x: x['coordinates'][0])
+            geo_data_dataframe = pd.concat([geo_data_dataframe, geo_data])
+
+    return geo_data_dataframe
+
 
 def get_weather_data(match_table):
     # get weather data for stations (currently only one station)
@@ -198,6 +267,8 @@ def get_weather_data(match_table):
         print(i)
 
         url = "https://bulk.meteostat.net/v2/hourly/{}.csv.gz".format(i)
+        # url = "https://bulk.meteostat.net/v2/daily/{}.csv.gz".format(i)
+
         name = i
 
         res = requests.get(url)
@@ -214,11 +285,13 @@ def get_weather_data(match_table):
 
             colnames = ['date', 'hour', 'temp', 'dwpt', 'rhum', 'prcp',
                         'snow', 'wdir', 'wspd', 'wpgt', 'pres', 'tsun', 'coco']
+            # colnames = ['date', 'tavg', 'tmin', 'tmax', 'prcp', 'snow',
+            #            'wdir', 'wspd', 'wpgt', 'pres', 'tsun']
             weather = pd.read_csv("./temp/"+name+".csv",
                                   names=colnames, header=None)
             weather['station'] = i
             weather = weather[weather.date > '2023-01-01']
-            weather_dataframe =pd.concat([weather_dataframe,weather])
+            weather_dataframe = pd.concat([weather_dataframe, weather])
             # weather.to_sql('weather', 'sqlite:///amse.sqlite',
             #   if_exists='append', index=False)
     return weather_dataframe
@@ -243,18 +316,30 @@ if __name__ == "__main__":
 
     train_stations = get_trainstations(headers)
     load(train_stations, 'train_stations', 'amse.sqlite')
-    
-    now = datetime.now()    
-    name='timetables'+now.strftime("%m-%d-%H")
+
+    now = datetime.now()
+    name = 'timetables'+now.strftime("%m-%d-%H")
     time_tables = get_timetables(headers, train_stations)
     time_tables.to_csv(name+'.csv')
     load(time_tables, name, 'amse.sqlite')
+    
+    headers = {
+        'DB-Client-Id': ClientID,
+        'DB-Api-Key': APIKey,
+        'accept': "application/json"
+    }
+    geo_data = get_train_station_geo_data(headers, train_stations)
+    load(geo_data, 'geo_data_train_stations', 'amse.sqlite')
 
-    #weather_stations = get_weather_station()
-    #load(weather_stations, 'weather_stations', 'amse.sqlite')
+    weather_stations = get_weather_station()
+    load(weather_stations, 'weather_stations', 'amse.sqlite')
+    
+    match_table = get_match_table_update(weather_stations, geo_data)
+    load(match_table, 'match_table', 'amse.sqlite')
 
     #match_table = get_match_table(weather_stations, train_stations)
     #load(match_table, 'match_table', 'amse.sqlite')
+ 
 
-    #weather_data = get_weather_data(match_table)
-    #load(weather_data, 'weather', 'amse.sqlite')
+    weather_data = get_weather_data(match_table)
+    load(weather_data, 'weather', 'amse.sqlite')
