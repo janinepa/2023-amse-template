@@ -328,18 +328,18 @@ if __name__ == "__main__":
         'DB-Api-Key': APIKey,
         'accept': "application/json"
     }
-    geo_data = get_train_station_geo_data(headers, train_stations)
-    load(geo_data, 'geo_data_train_stations', 'amse.sqlite')
+    #geo_data = get_train_station_geo_data(headers, train_stations)
+    #load(geo_data, 'geo_data_train_stations', 'amse.sqlite')
 
-    weather_stations = get_weather_station()
-    load(weather_stations, 'weather_stations', 'amse.sqlite')
+    #weather_stations = get_weather_station()
+    #load(weather_stations, 'weather_stations', 'amse.sqlite')
     
-    match_table = get_match_table_update(weather_stations, geo_data)
-    load(match_table, 'match_table', 'amse.sqlite')
+    #match_table = get_match_table_update(weather_stations, geo_data)
+    #load(match_table, 'match_table', 'amse.sqlite')
 
     #match_table = get_match_table(weather_stations, train_stations)
     #load(match_table, 'match_table', 'amse.sqlite')
  
 
-    weather_data = get_weather_data(match_table)
-    load(weather_data, 'weather', 'amse.sqlite')
+    #weather_data = get_weather_data(match_table)
+    #load(weather_data, 'weather', 'amse.sqlite')
