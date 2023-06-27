@@ -1,4 +1,8 @@
-# AMSE/SAKI 2023 Template Project
+# AMSE/SAKI 2023 Project
+## Project Report
+This project aims to analyze how weather can influence train delays. For this purpose, a data pipeline was created, tests were initialized and explorations on the data were accomplished. The result of the project is presented in a final report. The notebook itself was too large to show as it contains plotly animations. Therefore, an HTML export was created and the plotly animations were exported to iframe figures. An easy way to see the html file with the figures is to go to https://htmlpreview.github.io/?https://github.com/janinepa/2023-amse-template/blob/main/project/report.html 
+
+## Project Template
 This template project provides some structure for your open data project in the AMSE/SAKI module.
 This repository contains (a) a data science project that is developed by the student over the course of the semester, and (b) the exercises that are submitted over the course of the semester.
 Before you begin, make sure you have [Python](https://www.python.org/) and [Jayvee](https://github.com/jvalue/jayvee) installed. We will work with [Jupyter notebooks](https://jupyter.org/). The easiest way to do so is to set up [VSCode](https://code.visualstudio.com/) with the [Jupyter extension](https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter).
