@@ -2,6 +2,8 @@
 ## Project Report
 This project aims to analyze how weather can influence train delays. For this purpose, a data pipeline was created, tests were initialized and explorations on the data were accomplished. The result of the project is presented in a final report. The notebook itself was too large to show as it contains plotly animations. Therefore, an HTML export was created and the plotly animations were exported to iframe figures. An easy way to see the html file with the figures is to go to https://htmlpreview.github.io/?https://github.com/janinepa/2023-amse-template/blob/main/project/report.html 
 
+*Important:* figure_14 was again too big for GitHub, so I had to zip it. To see it in the html report you have to decompress it first. Sorry for the effort but the figure is worth it. It shows the delays and precipitation for each station on a map with an hourly date animation.
+
 ## Project Template
 This template project provides some structure for your open data project in the AMSE/SAKI module.
 This repository contains (a) a data science project that is developed by the student over the course of the semester, and (b) the exercises that are submitted over the course of the semester.
