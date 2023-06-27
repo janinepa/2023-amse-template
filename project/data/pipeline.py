@@ -121,18 +121,12 @@ def get_timetables(headers, train_stations):
                 else:
                     timetables['pt'] = float('nan')
 
-                # timetables.to_csv('timetables.csv')
                 timetables['eva'] = i
 
                 timetable = pd.DataFrame(timetables[['eva', 'ct', 'pt']])
                 timetable = timetable.dropna(subset=['pt'])
 
-                # TODO drop nan or just where planned is nan
-                # timetable = timetable.dropna()
-
                 timetable_table = pd.concat([timetable_table, timetable])
-
-    # TODO update taballe mit neunen daten wenn eva und pt gleich dann nicht append sonst schon
 
     return timetable_table
 
@@ -166,42 +160,16 @@ def get_weather_station():
     return weather_stations
 
 
-def get_match_table(weather_stations, train_stations):
-
-    w = weather_stations[['id', 'name']]
-    t = train_stations[['eva', 'name']]
-
-    train_stations_list = list(train_stations['name'])
-    train_stations_list
-    weather = []
-    for i in train_stations_list:
-        x = i.split('Hbf', 1)
-        weather.append(x[0].strip())
-
-    t['common'] = weather
-    t['join'] = 1
-    w['join'] = 1
-
-    dataFrameFull = t.merge(
-        w, on='join').drop('join', axis=1)
-
-    t.drop('join', axis=1, inplace=True)
-    # print(dataFrameFull)
-    dataFrameFull['match'] = dataFrameFull.apply(
-        lambda x: x.name_y.find(x.common), axis=1).ge(0)
-
-    match_table = dataFrameFull[dataFrameFull['match']]
-
-    match_table.drop_duplicates(subset=['name_x'])
-
-    return match_table
-
 def get_match_table_update(weather_stations, geo_data):
-    weather_stations['location'] = weather_stations['location'].apply(ast.literal_eval)
-    weather_stations['longitude'] = weather_stations['location'].apply(lambda x: x['longitude'])
-    weather_stations['latitude'] = weather_stations['location'].apply(lambda x: x['latitude'])
+    weather_stations['location'] = weather_stations['location'].apply(
+        ast.literal_eval)
+    weather_stations['longitude'] = weather_stations['location'].apply(
+        lambda x: x['longitude'])
+    weather_stations['latitude'] = weather_stations['location'].apply(
+        lambda x: x['latitude'])
+
     # from sklearn.neighbors import BallTree, DistanceMetric
-    w=weather_stations[['id','longitude',	'latitude','name']]
+    w = weather_stations[['id', 'longitude',	'latitude', 'name']]
 
     #  DF1
     coords = np.radians(w[['latitude', 'longitude']])
@@ -212,7 +180,8 @@ def get_match_table_update(weather_stations, geo_data):
     coords = np.radians(geo_data[['latitude', 'longitude']])
     distances, indices = tree.query(coords, k=1)
     geo_data['name_train'] = w['name'].iloc[indices.flatten()].values
-    geo_data['longitude_matched'] = w['longitude'].iloc[indices.flatten()].values
+    geo_data['longitude_matched'] = w['longitude'].iloc[indices.flatten()
+                                                        ].values
     geo_data['latitude_matched'] = w['latitude'].iloc[indices.flatten()].values
     geo_data['id'] = w['id'].iloc[indices.flatten()].values
 
@@ -221,15 +190,15 @@ def get_match_table_update(weather_stations, geo_data):
 
 
 def get_train_station_geo_data(headers, train_stations):
-    
+
     geo_data_dataframe = pd.DataFrame()
-    
 
     for i in list(train_stations.eva):
         print(i)
         conn = http.client.HTTPSConnection("apis.deutschebahn.com")
-        
-        url = "/db-api-marketplace/apis/station-data/v2/stations?eva={}".format(i)
+
+        url = "/db-api-marketplace/apis/station-data/v2/stations?eva={}".format(
+            i)
 
         # get all Stations
         conn.request(
@@ -261,7 +230,6 @@ def get_train_station_geo_data(headers, train_stations):
 
 
 def get_weather_data(match_table):
-    # get weather data for stations (currently only one station)
     weather_dataframe = pd.DataFrame()
     for i in list(match_table.id):
         print(i)
@@ -292,8 +260,7 @@ def get_weather_data(match_table):
             weather['station'] = i
             weather = weather[weather.date > '2023-01-01']
             weather_dataframe = pd.concat([weather_dataframe, weather])
-            # weather.to_sql('weather', 'sqlite:///amse.sqlite',
-            #   if_exists='append', index=False)
+
     return weather_dataframe
 
 
@@ -322,24 +289,20 @@ if __name__ == "__main__":
     time_tables = get_timetables(headers, train_stations)
     time_tables.to_csv(name+'.csv')
     load(time_tables, name, 'amse.sqlite')
-    
+
     headers = {
         'DB-Client-Id': ClientID,
         'DB-Api-Key': APIKey,
         'accept': "application/json"
     }
-    #geo_data = get_train_station_geo_data(headers, train_stations)
-    #load(geo_data, 'geo_data_train_stations', 'amse.sqlite')
+    geo_data = get_train_station_geo_data(headers, train_stations)
+    load(geo_data, 'geo_data_train_stations', 'amse.sqlite')
 
-    #weather_stations = get_weather_station()
-    #load(weather_stations, 'weather_stations', 'amse.sqlite')
-    
-    #match_table = get_match_table_update(weather_stations, geo_data)
-    #load(match_table, 'match_table', 'amse.sqlite')
+    weather_stations = get_weather_station()
+    load(weather_stations, 'weather_stations', 'amse.sqlite')
 
-    #match_table = get_match_table(weather_stations, train_stations)
-    #load(match_table, 'match_table', 'amse.sqlite')
- 
+    match_table = get_match_table_update(weather_stations, geo_data)
+    load(match_table, 'match_table', 'amse.sqlite')
 
-    #weather_data = get_weather_data(match_table)
-    #load(weather_data, 'weather', 'amse.sqlite')
+    weather_data = get_weather_data(match_table)
+    load(weather_data, 'weather', 'amse.sqlite')
